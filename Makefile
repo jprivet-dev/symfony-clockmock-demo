@@ -42,13 +42,6 @@ $(info Warning: It is not possible to use variables from .env.local.php file)
 endif
 
 #
-# BASE
-#
-
-REPOSITORY = git@github.com:dunglas/symfony-docker.git
-CLONE_DIR  = clone
-
-#
 # OPTIONS
 # See https://github.com/dunglas/symfony-docker/blob/main/docs/options.md
 #
@@ -103,6 +96,7 @@ CONTAINER_PHP = $(COMPOSE) exec php
 PHP           = $(CONTAINER_PHP) php
 COMPOSER      = $(CONTAINER_PHP) composer
 CONSOLE       = $(PHP) bin/console
+PHPUNIT       = $(PHP) vendor/bin/phpunit
 
 ## — 🐳 🎵 THE SYMFONY STARTER MAKEFILE 🎵 🐳 —————————————————————————————————
 
@@ -112,7 +106,7 @@ CONSOLE       = $(PHP) bin/console
 
 .DEFAULT_GOAL = help
 .PHONY: help
-help: ## Print self-documented Makefile
+help: ## Display this help message with available commands
 	@grep -E '(^[.a-zA-Z_-]+[^:]+:.*##.*?$$)|(^#{2})' Makefile | awk 'BEGIN {FS = "## "}; { \
 		split($$1, line, ":"); targets=line[1]; description=$$2; \
 		if (targets == "##") { printf "\033[33m%s\n", ""; } \
@@ -136,45 +130,6 @@ info: ## Show info
 	@printf "* Go on $(G)https://localhost/$(S)\n"
 	@printf "\n"
 
-##
-
-.PHONY: generate
-generate: clone build up_detached info ## Generate a fresh Symfony application with the dunglas/symfony-docker configuration
-
-PHONY: clone
-clone: ## Clone and extract dunglas/symfony-docker at the root
-	@printf "\n$(Y)Clone dunglas/symfony-docker$(S)"
-	@printf "\n$(Y)----------------------------$(S)\n\n"
-ifeq ($(wildcard Dockerfile),)
-	@printf "Repository: $(Y)$(REPOSITORY)$(S)\n"
-	git clone $(REPOSITORY) $(CLONE_DIR) --depth 1
-	@printf "\n$(Y)Extract dunglas/symfony-docker at the root$(S)"
-	@printf "\n$(Y)------------------------------------------$(S)\n\n"
-	mv -vf $(CLONE_DIR)/frankenphp .
-	mv -vf $(CLONE_DIR)/.dockerignore .
-	mv -vf $(CLONE_DIR)/compose.override.yaml .
-	mv -vf $(CLONE_DIR)/compose.prod.yaml .
-	mv -vf $(CLONE_DIR)/compose.yaml .
-	mv -vf $(CLONE_DIR)/Dockerfile .
-	rm -rf $(CLONE_DIR)
-	@printf " $(G)✔$(S) dunglas/symfony-docker cloned and extracted at the root.\n\n"
-else
-	@printf " $(R)⨯$(S) dunglas/symfony-docker already cloned and extracted at the root.\n\n"
-endif
-
-clear_docker: down ## Remove all dunglas/symfony-docker files
-	@printf "\n$(Y)Remove all dunglas/symfony-docker files$(S)"
-	@printf "\n$(Y)---------------------------------------$(S)\n\n"
-	rm -rf frankenphp
-	rm  -f .dockerignore compose.override.yaml compose.prod.yaml compose.yaml Dockerfile
-
-clear_skeleton: down ## Remove all symfony/skeleton files
-	@printf "\n$(Y)Remove all symfony/skeleton files$(S)"
-	@printf "\n$(Y)---------------------------------$(S)\n\n"
-	rm -rf bin config public src var vendor
-	rm  -f .env .env.dev .gitignore composer.json composer.lock symfony.lock
-	git restore LICENSE
-
 ## — SYMFONY 🎵 ———————————————————————————————————————————————————————————————
 
 .PHONY: symfony
@@ -192,10 +147,6 @@ about: ## Display information about the current project
 .PHONY: dotenv
 dotenv: ## Lists all dotenv files with variables and values
 	$(CONSOLE) debug:dotenv
-
-.PHONY: dumpenv
-dumpenv: ## Generate .env.local.php
-	$(COMPOSER) dump-env prod
 
 ## — PHP 🐘 ———————————————————————————————————————————————————————————————————
 
@@ -226,13 +177,18 @@ else
 	$(COMPOSER) update
 endif
 
+## — TESTS ✅ —————————————————————————————————————————————————————————————————
+
+.PHONY: phpunit
+phpunit: ## Run PHPUnit - $ make phpunit [ARG=<arguments>] - Example: $ make phpunit ARG="tests/myTest.php"
+	$(PHPUNIT) $(ARG)
+
 ## — DOCKER 🐳 ————————————————————————————————————————————————————————————————
 
 .PHONY: up
 up: ## Start the containers - $ make up [ARG=<arguments>] - Example: $ make up ARG=-d
 	$(UP_ENV) $(COMPOSE) up --remove-orphans --pull always $(ARG)
 
-.PHONY: up_detached
 up_detached: ARG=--wait -d
 up_detached: up ## Start the containers (wait for services to be running|healthy - detached mode)
 
@@ -267,8 +223,6 @@ vars: ## Show some Makefile variables
 	@printf "\n$(Y)----$(S)\n\n"
 	@printf "USER      : $(USER)\n"
 	@printf "APP_ENV   : $(APP_ENV)\n"
-	@printf "REPOSITORY: $(REPOSITORY)\n"
-	@printf "CLONE_DIR : $(CLONE_DIR)\n"
 	@printf "UP_ENV    : $(UP_ENV)\n"
 	@printf "COMPOSE_V2: $(COMPOSE_V2)\n"
 	@printf "COMPOSE   : $(COMPOSE)\n"
