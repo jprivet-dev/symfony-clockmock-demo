@@ -32,16 +32,18 @@ class DeliveryService
         $currentDateTime = new DateTimeImmutable();
 
         if(!$this->canPlaceOrderForTodayProcessing()) {
-            $currentDateTime = new DateTimeImmutable('tomorrow 09:00:00');
+            $timestamp = strtotime('tomorrow 09:00:00', $currentDateTime->getTimestamp());
+            $currentDateTime = new DateTimeImmutable()->setTimestamp($timestamp);
 
             if ($currentDateTime->isWeekend()) {
-                $currentDateTime = new DateTimeImmutable('monday 09:00:00');
+                $timestamp = strtotime('next monday 09:00:00', $currentDateTime->getTimestamp());
+                $currentDateTime = new DateTimeImmutable()->setTimestamp($timestamp);
             }
         }
 
-        $deliveryTimestamp = strtotime(self::DELIVERY_IN_2_WORKING_DAYS, $currentDateTime->getTimestamp());
+        $timestamp = strtotime(self::DELIVERY_IN_2_WORKING_DAYS, $currentDateTime->getTimestamp());
 
-        return new DateTimeImmutable()->setTimestamp($deliveryTimestamp);
+        return new DateTimeImmutable()->setTimestamp($timestamp);
     }
 
     /**
