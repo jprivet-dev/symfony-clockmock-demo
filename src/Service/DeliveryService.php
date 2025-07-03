@@ -32,9 +32,10 @@ class DeliveryService
         $currentDateTime = new DateTimeImmutable();
 
         if(!$this->canPlaceOrderForTodayProcessing()) {
-            $currentDateTime = $currentDateTime->modify('tomorrow 09:00:00');
+            $currentDateTime = new DateTimeImmutable('tomorrow 09:00:00');
+
             if ($currentDateTime->isWeekend()) {
-                $currentDateTime = $currentDateTime->modify('monday 09:00:00');
+                $currentDateTime = new DateTimeImmutable('monday 09:00:00');
             }
         }
 

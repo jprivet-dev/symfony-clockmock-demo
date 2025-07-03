@@ -42,11 +42,4 @@ class DateTimeImmutable extends \DateTimeImmutable
     {
         return in_array($this->getDayNumber(), [6, 7]);
     }
-
-    public function modify(string $modifier): static
-    {
-        $dateTime = parent::modify($modifier);
-
-        return new static($dateTime->getTimestamp(), $dateTime->getTimezone());
-    }
 }
